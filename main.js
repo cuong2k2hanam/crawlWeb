@@ -6,6 +6,8 @@ const $ = cheerio.load('<h2 class="title">Hello Cuong</h2>');
 
 console.log($('h2.title').text());
 
+var totalNewSpaper = 0;
+
 
 var workbook = new excel.Workbook();
 var numRow = 2;
@@ -50,13 +52,21 @@ request('https://jprp.vn/index.php/JPRP/issue/archive', (error, response, html) 
 
         var l = totalLink.length;
 
-        console.log(totalLink.toString() + "\n" + l);
+        // console.log(totalLink.toString() + "\n" + l);
 
-        for (let i = 3; i <= 3; i++) {
+        for (let i = 0; i < l; i++) {
 
             request(totalLink[i], (error, response, html) => {
 
                 loadLink(error, response, html);
+
+                // if (loadLink(error, response, html) == -1) {
+                //     console.log(totalLink[i]);
+                //     if (i == l - 1) {
+                //         console.log(totalNewSpaper);
+                //     }
+                // };
+
 
             });
         }
@@ -80,6 +90,11 @@ var loadLink = (error, response, html) => {
         })
 
         var l = totalLink.length;
+        totalNewSpaper += l;
+
+        console.log(l);
+        console.log(totalNewSpaper);
+        // return -1;
 
         for (let i = 0; i < l; i++) {
 
@@ -88,15 +103,16 @@ var loadLink = (error, response, html) => {
             request(totalLink[i], (error, response, html) => {
 
                 var detail = loadResult(error, response, html);
-                if (detail === -1) {
+                if (detail == false) {
                     console.log("Err: " + totalLink[i]);
-                } else {
-                    // detailLink.push(totalLink[i])
-                    // detailLink.push(detail)
-                    // totalDetailLink.push(detailLink);
-                    // console.log(i);
-
                 }
+                // } else {
+                //     // detailLink.push(totalLink[i])
+                //     // detailLink.push(detail)
+                //     // totalDetailLink.push(detailLink);
+                //     // console.log(i);
+
+                // }
                 // console.log(i);
             });
         }
@@ -110,17 +126,26 @@ var loadResult = (error, response, html) => {
     // console.log(response.statusCode);
     if (!error && response.statusCode == 200) {
         const $ = cheerio.load(html);
-        if ($('.list-group-item.doi').text().split('DOI:')[1] = undefined) {
-            return -1;
-        }
+
         var object = {
             name: $('title').text().trim().split('\n')[0],
             numberNewSpaper: $('.panel-body a.title').text().trim(),
-            date: $('.date-published').text().split(':')[1].trim(),
-            doi: $('.list-group-item.doi').text().split('DOI:')[1].trim()
+            date: "",
+            doi: ""
         }
 
-        console.log(JSON.stringify(object));
+
+        var DATE = $('.date-published').text().split(':')[1];
+        if (DATE != undefined) {
+            object.date = DATE.trim();
+        }
+
+        var DOI = $('.list-group-item.doi').text().split('DOI:')[1];
+        if (DOI != undefined) {
+            object.doi = DOI.trim();
+        }
+
+        // console.log(JSON.stringify(object));
 
 
         worksheet.cell(numRow, 1).string(object.name).style(style);
@@ -128,12 +153,14 @@ var loadResult = (error, response, html) => {
         worksheet.cell(numRow, 3).string(object.date).style(style);
         worksheet.cell(numRow, 4).string(object.doi).style(style);
 
+        console.log(numRow);
         numRow++
 
         workbook.write('Excel.xlsx');
 
-        return object;
+        return true;
     } else {
-        return -1;
+        console.log(error.message.code());
+        return false;
     }
 }
