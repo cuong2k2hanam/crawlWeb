@@ -1,10 +1,14 @@
 const cheerio = require('cheerio');
 const request = require('request-promise');
 var excel = require('excel4node');
+const { get } = require('request-promise');
 
 const $ = cheerio.load('<h2 class="title">Hello Cuong</h2>');
 
 console.log($('h2.title').text());
+
+
+var URL = 'https://jprp.vn/index.php/JPRP/issue/archive';
 
 var totalNewSpaper = 0;
 
@@ -36,8 +40,6 @@ worksheet.cell(1, 4).string("Doi").style(style);
 
 
 
-
-
 request('https://jprp.vn/index.php/JPRP/issue/archive', (error, response, html) => {
     var totalLink = []
     console.log(response.statusCode);
@@ -52,7 +54,7 @@ request('https://jprp.vn/index.php/JPRP/issue/archive', (error, response, html) 
 
         var l = totalLink.length;
 
-        // console.log(totalLink.toString() + "\n" + l);
+        console.log(totalLink.toString() + "\n" + l);
 
         for (let i = 0; i < l; i++) {
 
@@ -75,7 +77,7 @@ request('https://jprp.vn/index.php/JPRP/issue/archive', (error, response, html) 
 
 
 
-var loadLink = (error, response, html) => {
+async function loadLink(error, response, html) {
     if (!error && response.statusCode == 200) {
         const $ = cheerio.load(html);
         var n = 1;
@@ -92,30 +94,49 @@ var loadLink = (error, response, html) => {
         var l = totalLink.length;
         totalNewSpaper += l;
 
-        console.log(l);
-        console.log(totalNewSpaper);
         // return -1;
 
         for (let i = 0; i < l; i++) {
 
-            // var detailLink = []
+            // var detailLink = [];
 
-            request(totalLink[i], (error, response, html) => {
-
-                var detail = loadResult(error, response, html);
-                if (detail == false) {
-                    console.log("Err: " + totalLink[i]);
-                }
-                // } else {
-                //     // detailLink.push(totalLink[i])
-                //     // detailLink.push(detail)
-                //     // totalDetailLink.push(detailLink);
-                //     // console.log(i);
-
-                // }
-                // console.log(i);
+            var promise = new Promise((resolve, reject) => {
+                request(totalLink[i], (error, response, html) => {
+                    resolve(loadResult(error, response, html));
+                });
             });
+
+            var detail = await promise;
+            setTimeout(function() {}, 500)
+            if (detail == false) {
+                console.log("Err: " + totalLink[i]);
+            } else {
+                console.log(true);
+            }
+
+            // request(totalLink[i], (error, response, html) => {
+
+            //     var promise = new Promise((resolve, reject) => {
+            //         resolve(loadResult(error, response, html));
+            //     })
+
+            //     var detail = await promise;
+            //     if (detail == false) {
+            //         console.log("Err: " + totalLink[i]);
+            //     }
+            //     // } else {
+            //     //     // detailLink.push(totalLink[i])
+            //     //     // detailLink.push(detail)
+            //     //     // totalDetailLink.push(detailLink);
+            //     //     // console.log(i);
+
+            //     // }
+            //     // console.log(i);
+            // });
         }
+
+        console.log(l);
+        console.log(totalNewSpaper);
 
         // console.log("Het");
 
@@ -156,11 +177,18 @@ var loadResult = (error, response, html) => {
         console.log(numRow);
         numRow++
 
-        workbook.write('Excel.xlsx');
+        if (numRow > totalNewSpaper) {
+            workbook.write('Excel6.xlsx');
+        }
+
 
         return true;
     } else {
-        console.log(error.message.code());
+        // console.log(error.message);
+        totalNewSpaper--;
+        if (numRow > totalNewSpaper) {
+            workbook.write('Excel6.xlsx');
+        }
         return false;
     }
 }

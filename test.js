@@ -103,7 +103,13 @@ var loadLink = (error, response, html) => {
             request(totalLink[i], (error, response, html) => {
 
                 var detail = loadResult(error, response, html);
-                if (detail == false) {
+                if (detail !== true) {
+                    // if (detail.split(" ").includes("ETIMEDOUT")) {
+                    //     request(totalLink[i], (error, response, html) => {
+                    //         loadResult(error, response, html);
+                    //     })
+                    // }
+                    console.log(detail);
                     console.log("Err: " + totalLink[i]);
                 }
                 // } else {
@@ -156,11 +162,18 @@ var loadResult = (error, response, html) => {
         console.log(numRow);
         numRow++
 
-        workbook.write('Excel.xlsx');
+        if (numRow > totalNewSpaper) {
+            workbook.write('Excel100.xlsx');
+        }
 
         return true;
     } else {
-        console.log(error.message.code());
-        return false;
+        totalNewSpaper--;
+        console.log(totalNewSpaper);
+        if (numRow > totalNewSpaper) {
+            workbook.write('Excel100.xlsx');
+        }
+
+        return error.code;
     }
 }
