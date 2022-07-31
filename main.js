@@ -40,7 +40,7 @@ worksheet.cell(1, 4).string("Doi").style(style);
 
 
 
-request('https://jprp.vn/index.php/JPRP/issue/archive', (error, response, html) => {
+request('https://jprp.vn/index.php/JPRP/issue/archive', async(error, response, html) => {
     var totalLink = []
     console.log(response.statusCode);
     if (!error && response.statusCode == 200) {
@@ -57,27 +57,41 @@ request('https://jprp.vn/index.php/JPRP/issue/archive', (error, response, html) 
         console.log(totalLink.toString() + "\n" + l);
 
         for (let i = 0; i < l; i++) {
+            var promise = new Promise((resolve, reject) => {
+                request(totalLink[i], (error, response, html) => {
 
-            request(totalLink[i], (error, response, html) => {
+                    resolve(loadLink(error, response, html));
 
-                loadLink(error, response, html);
-
-                // if (loadLink(error, response, html) == -1) {
-                //     console.log(totalLink[i]);
-                //     if (i == l - 1) {
-                //         console.log(totalNewSpaper);
-                //     }
-                // };
+                    // if (loadLink(error, response, html) == -1) {
+                    //     console.log(totalLink[i]);
+                    //     if (i == l - 1) {
+                    //         console.log(totalNewSpaper);
+                    //     }
+                    // };
 
 
+                });
             });
+            // request(totalLink[i], (error, response, html) => {
+
+            //     loadLink(error, response, html);
+
+            //     // if (loadLink(error, response, html) == -1) {
+            //     //     console.log(totalLink[i]);
+            //     //     if (i == l - 1) {
+            //     //         console.log(totalNewSpaper);
+            //     //     }
+            //     // };
+
+
+            // });
+            var detail = await promise;
+            console.log("i = " + i);
         }
     }
 });
 
-
-
-async function loadLink(error, response, html) {
+function loadLink(error, response, html) {
     if (!error && response.statusCode == 200) {
         const $ = cheerio.load(html);
         var n = 1;
@@ -106,8 +120,7 @@ async function loadLink(error, response, html) {
                 });
             });
 
-            var detail = await promise;
-            setTimeout(function() {}, 500)
+            var detail = promise;
             if (detail == false) {
                 console.log("Err: " + totalLink[i]);
             } else {
@@ -143,7 +156,7 @@ async function loadLink(error, response, html) {
     }
 }
 
-var loadResult = (error, response, html) => {
+function loadResult(error, response, html) {
     // console.log(response.statusCode);
     if (!error && response.statusCode == 200) {
         const $ = cheerio.load(html);
@@ -153,7 +166,7 @@ var loadResult = (error, response, html) => {
             numberNewSpaper: $('.panel-body a.title').text().trim(),
             date: "",
             doi: ""
-        }
+        };
 
 
         var DATE = $('.date-published').text().split(':')[1];
@@ -167,18 +180,16 @@ var loadResult = (error, response, html) => {
         }
 
         // console.log(JSON.stringify(object));
-
-
         worksheet.cell(numRow, 1).string(object.name).style(style);
         worksheet.cell(numRow, 2).string(object.numberNewSpaper).style(style);
         worksheet.cell(numRow, 3).string(object.date).style(style);
         worksheet.cell(numRow, 4).string(object.doi).style(style);
 
         console.log(numRow);
-        numRow++
+        numRow++;
 
         if (numRow > totalNewSpaper) {
-            workbook.write('Excel6.xlsx');
+            workbook.write('Excel12.xlsx');
         }
 
 
@@ -187,7 +198,7 @@ var loadResult = (error, response, html) => {
         // console.log(error.message);
         totalNewSpaper--;
         if (numRow > totalNewSpaper) {
-            workbook.write('Excel6.xlsx');
+            workbook.write('Excel12.xlsx');
         }
         return false;
     }
